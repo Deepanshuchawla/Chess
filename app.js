@@ -41,6 +41,7 @@ io.on("connection", function(uniquesocket) {
 
     uniquesocket.on("move", (move) => {
         try{
+            console.log(chess.isCheckmate());
             if(chess.turn() == 'w' && uniquesocket.id !== players.white) return ;
             if(chess.turn() == 'b' && uniquesocket.id !== players.black) return ;
 

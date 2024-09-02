@@ -9,16 +9,16 @@ let playerRole = null;
 const renderBoard = () => {
     const board = chess.board();
     boardElement.innerHTML = "";
-    board.forEach((row, rowindex) => {
+    board.forEach((row, rowIndex) => {
         row.forEach((square, squareIndex) => {
             const squareElement = document.createElement("div");
             squareElement.classList.add("square", 
-                (rowindex + squareIndex)% 2 === 0 ? "light" : "dark"
-            )
-            squareElement.dataset.row = rowindex;
+                (rowIndex + squareIndex) % 2 === 0 ? "light" : "dark"
+            );
+            squareElement.dataset.row = rowIndex;
             squareElement.dataset.col = squareIndex;
 
-            if(square) {
+            if (square) {
                 const pieceElement = document.createElement("div");
                 pieceElement.classList.add(
                     "piece",
@@ -28,9 +28,9 @@ const renderBoard = () => {
                 pieceElement.draggable = playerRole === square.color;
 
                 pieceElement.addEventListener("dragstart", (e) => {
-                    if(pieceElement.draggable) {
+                    if (pieceElement.draggable) {
                         draggedPiece = pieceElement;
-                        sourceSquare = {row: rowindex, col : squareIndex};
+                        sourceSquare = { row: rowIndex, col: squareIndex };
                         e.dataTransfer.setData("text/plain", "");
                     }
                 });
@@ -49,32 +49,39 @@ const renderBoard = () => {
 
             squareElement.addEventListener("drop", function(e) {
                 e.preventDefault();
-                if(draggedPiece) {
-                    const targetSource = {
+                if (draggedPiece) {
+                    const targetSquare = {
                         row: parseInt(squareElement.dataset.row),
                         col: parseInt(squareElement.dataset.col)
                     };
-                    handleMove(sourceSquare, targetSource);
+                    handleMove(sourceSquare, targetSquare);
                 }
-            })
+            });
+
             boardElement.append(squareElement);
-        })
+        });
     });
 
-    if(playerRole === 'b') {
+    if (playerRole === 'b') {
         boardElement.classList.add("flipped");
-    } else{
+    } else {
         boardElement.classList.remove("flipped");
     }
 }
 
 const handleMove = (source, target) => {
     const move = {
-        from: `${String.fromCharCode(97+source.col)}${8-source.row}`,
-        to: `${String.fromCharCode(97+target.col)}${8-target.row}`,
-        promotion: 'q',
+        from: `${String.fromCharCode(97 + source.col)}${8 - source.row}`,
+        to: `${String.fromCharCode(97 + target.col)}${8 - target.row}`,
+        promotion: 'q',  // Promoting to a queen by default (for pawns reaching the 8th rank)
+    };
+
+    const result = chess.move(move);
+    if (result) {
+        socket.emit("move", move);
+    } else {
+        console.log("Illegal move:", move);
     }
-    socket.emit("move", move);
 }
 
 const getPieceUnicode = (piece) => {
@@ -83,18 +90,17 @@ const getPieceUnicode = (piece) => {
         r: "♜",
         n: "♞",
         b: "♝",
-        q: "♕",
-        k: "♔",
+        q: "♛",
+        k: "♚",
         P: "♙",
         R: "♖",
         N: "♘",
         B: "♗",
-        Q: "♛",
-        K: "♚",
+        Q: "♕",
+        K: "♔",
     };
 
     return unicodePieces[piece.type] || "";
-    
 }
 
 socket.on("playerRole", function(role) {
@@ -114,6 +120,11 @@ socket.on("boardState", function(fen) {
 
 socket.on("move", function(move) {
     chess.move(move);
+    if (chess.isCheckmate()) {
+        alert("Checkmate! Game over!");
+        // Handle game over logic here (disable moves, show UI, etc.)
+    }
+
     renderBoard();
 });
 
